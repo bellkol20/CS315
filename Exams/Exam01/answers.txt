@@ -1,0 +1,98 @@
+1. PC is a program counter, the purpose of a PC is to hold the adress of the next instruction to be fetched from memory. 
+MAR is a memory address register, specifies the address in memory to be written from or read into the MBR.
+MBR is a memory buffer register, the purpose is to hold data being transferred to and from memory. 
+IR is a instruction register, it contains the 8-bit opcode instruction being executed.
+IBR is a instruction buffer register, emplyed to hold the right hand instruction temporarily.
+AC is a accumulator register, employed to hold operands and results of ALU operations,its the maina rithmetic register storing results.
+MQ is a multiply quotient register, employed to hold operands and results of ALU operations,its the maina rithmetic register storing results.
+
+2. 
+a. 9 --> 1001
+   E --> 1110
+   4 --> 0100
+   A --> 1010
+   7 --> 0111
+   9E4A7 to binary = 1001 1110 0100 1010 0111
+b. 1 --> 1 * 2^5
+   1 --> 1 * 2^4
+   1 --> 1 * 2^3
+   0 --> 0 * 2^2 
+   1 --> 1 * 2^1
+   0 --> 0 * 2^0
+   111010 to decimal  = 1 *2^5 + 1 *2^4 + 1 *2^3 + 0* 2^2 + 1* 2^1 + 0* 2^0 = 58
+   total --> 58
+c. 0010 --> 2
+   1110 --> E 
+   0101 --> 5
+   0101 --> 5 
+   total -->2E55
+d. 91 --> 1+2+8+16+64 --> 1 0 1 1 0 1 1 
+   total --> 1011011
+
+3. Invert for 1's complement then add 1 for 2's complement 
+a. 001000011000
+    --> 110111100111
+      +            1
+        110111101000
+b. 110001001000
+   --> 001110110111
+      +           1
+      001110111000
+c. 011101001001
+   --> 100010110110
+   +             1
+      100010110111
+d. 101001010000
+  --> 010110101111
+   +             1
+   010110110000
+4. 
+L --> C3
+M --> 44
+N --> 2d
+L --> 2N(N-2)/M 
+
+load N --> opcode = 01
+    -->  address = 02D
+   1. load N--> 0102D
+   2. sub 2 -->06002
+   3. store temp1 --> 21050
+   4. load N --> 0102D
+   5. multiply temp1 --> 0B050
+   6. store temp2 --> 21051
+   7. load 2 --> 01002
+   8. multiply temp2 --> 0B051
+   9. Div M --> 0C044 
+   10. store L -->210C3
+
+
+
+5. 
+000 :0100506006 
+01005 06006 --> LDA 005 SUB 006
+001: 0C00721005 
+0C007 21005 --> DIV 007 STA 005
+002: 090050B007
+09005 0B007 --> LDM 005 MUL 007
+003: 0A00014000 
+0A000 01400 --> LMA    LSH
+004: 2100500000 
+21005 00000 --> STA 005 HLT
+005: 40
+006:12
+007:06
+Trace :
+LDA 005 --> 64 --> AC 
+SUB 006 --> 64 - 18 --> 46 --> AC
+DIV 007 --> 46 / 6 --> 7 remainder 4 // MQ --> 7 and AC --> 4
+STA 005 --> 4 M(005) --> 4
+LDM 005 --> 4 --> MQ
+MUL 007 --> 6 x 4 --> 24 // AC --> 0 and MQ --> 24
+LMA --> MQ --> 24 --> AC
+LSH --> 24 x 2 --> 48 --> AC
+STA 005 --> 48 --> M(005) 
+HLT
+
+total: M(005) --> 48 
+
+
