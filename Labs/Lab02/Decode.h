@@ -2,140 +2,453 @@
 #define DECODE_H
 
 #include "IAS.h"
-#include <string>
 
 namespace osl
 {
-	class Decode
-	{
-		public:
-		static void execute(IAS& ias)
-		{
-			std::string ir = ias(1).read();
-			while(ir.length() < 8) ir = "0" + ir;
-			int op = osl::toDecimal(ir);
-			if(op < 0) return;
-			switch(op) {
-				case 0x00: HLT(ias); break;
-				case 0x01: LDA(ias); break;
-				case 0x02: LDN(ias); break;
-				case 0x03: ALD(ias); break;
-				case 0x04: ALN(ias); break;
-				case 0x05: ADD(ias); break;
-				case 0x06: SUB(ias); break;
-				case 0x07: AAD(ias); break;
-				case 0x08: ASB(ias); break;
-				case 0x09: LDM(ias); break;
-				case 0x0A: LMA(ias); break;
-				case 0x0B: MUL(ias); break;
-				case 0x0C: DIV(ias); break;
-				case 0x0D: BRL(ias); break;
-				case 0x0E: BRR(ias); break;
-				case 0x0F: BPL(ias); break;
-				case 0x10: BPR(ias); break;
-				case 0x12: STL(ias); break;
-				case 0x13: STR(ias); break;
-				case 0x14: LSH(ias); break;
-				case 0x15: RSH(ias); break;
-				case 0x21: STA(ias); break;
-			}
-		}
+    class Decode
+    {
+        private:
+        static void LMA(IAS& machine)
+        {
+            //AC = MQ => machine(5) <- machine(6)
+            machine(5).write(machine(6).read());
+        }
 
-		private:
-		static int addr(IAS& ias) {
-			std::string mar = ias(3).read();
-			while(mar.length() < 12) mar = "0" + mar;
-			return osl::toDecimal(mar);
-		}
-		static std::string pad40(std::string s) {
-			while(s.length() < 40) s = "0" + s;
-			return s.length() > 40 ? s.substr(s.length() - 40, 40) : s;
-		}
-		static bool inRange(int x) { return x >= 0 && x < 4096; }
-		static std::string abs40(std::string s) {
-			s = pad40(s);
-			return (s.length() > 0 && s[0] == '1') ? osl::negate(s) : s;
-		}
-		static void add40(IAS& ias, const std::string& b) {
-			std::string a = pad40(ias(5).read());
-			bool carry = false;
-			std::string res(40, '0');
-			for(int i = 39; i >= 0; i--) {
-				int sum = (a[i]=='1') + (b[i]=='1') + carry;
-				res[i] = (sum & 1) ? '1' : '0';
-				carry = (sum >= 2);
-			}
-			ias(5).write(res);
-		}
-		static void branch(IAS& ias, bool ifNonNeg, bool left) {
-			std::string ac = pad40(ias(5).read());
-			if(ifNonNeg && ac.length() > 0 && ac[0] == '1') return;
-			int x = addr(ias);
-			if(!inRange(x)) return;
-			std::string w = pad40(ias[x].read());
-			ias(2).write(left ? w.substr(0, 20) : w.substr(20, 20));
-		}
-		static void store12(IAS& ias, int x, int pos) {
-			std::string part = pad40(ias(5).read()).substr(28, 12);
-			std::string cell = pad40(ias[x].read());
-			ias[x].write(pos + 12 >= 40 ? cell.substr(0, pos) + part : cell.substr(0, pos) + part + cell.substr(pos + 12));
-		}
+        static void LDM(IAS& machine)
+        {
+            //MAR: 3
+            //MQ = M(MAR)
+            int addr = toDecimal(machine(3).read());
+            machine(6).write(machine[addr].read());
+        }
 
-		static void LMA(IAS& ias)  { ias(5).write(pad40(ias(6).read())); }
-		static void LDM(IAS& ias)  { int x = addr(ias); if(inRange(x)) ias(6).write(pad40(ias[x].read())); }
-		static void STA(IAS& ias)  { int x = addr(ias); if(inRange(x)) ias[x].write(pad40(ias(5).read())); }
-		static void LDA(IAS& ias)  { int x = addr(ias); if(inRange(x)) ias(5).write(pad40(ias[x].read())); }
-		static void LDN(IAS& ias)  { int x = addr(ias); if(inRange(x)) ias(5).write(pad40(osl::negate(pad40(ias[x].read())))); }
-		static void ALD(IAS& ias)  { int x = addr(ias); if(inRange(x)) ias(5).write(pad40(abs40(ias[x].read()))); }
-		static void ALN(IAS& ias)  { int x = addr(ias); if(inRange(x)) ias(5).write(pad40(osl::negate(abs40(ias[x].read())))); }
-		static void BRL(IAS& ias)  { branch(ias, false, true); }
-		static void BRR(IAS& ias)  { branch(ias, false, false); }
-		static void BPL(IAS& ias)  { branch(ias, true, true); }
-		static void BPR(IAS& ias)  { branch(ias, true, false); }
-		static void ADD(IAS& ias)  { int x = addr(ias); if(inRange(x)) add40(ias, pad40(ias[x].read())); }
-		static void SUB(IAS& ias)  { int x = addr(ias); if(inRange(x)) add40(ias, osl::negate(pad40(ias[x].read()))); }
-		static void AAD(IAS& ias)  { int x = addr(ias); if(inRange(x)) add40(ias, abs40(ias[x].read())); }
-		static void ASB(IAS& ias)  { int x = addr(ias); if(inRange(x)) add40(ias, osl::negate(abs40(ias[x].read()))); }
-		static void LSH(IAS& ias)  { std::string ac = pad40(ias(5).read()); ias(5).write(pad40(ac.substr(1, 39) + "0")); }
-		static void RSH(IAS& ias)  { std::string ac = pad40(ias(5).read()); ias(5).write(pad40(std::string(1, ac[0]) + ac.substr(0, 39))); }
-		static void STL(IAS& ias)  { int x = addr(ias); if(inRange(x)) store12(ias, x, 8); }
-		static void STR(IAS& ias)  { int x = addr(ias); if(inRange(x)) store12(ias, x, 28); }
-		static void HLT(IAS& ias)  { (void)ias; }
+        static void STA(IAS& machine)
+        {
+            // STA: M(MAR) <- AC
+            int addr = toDecimal(machine(3).read());
+            machine[addr].write(machine(5).read());
+        }
 
-		static void MUL(IAS& ias)
-		{
-			int x = addr(ias);
-			if(!inRange(x)) return;
-			std::string mq = pad40(ias(6).read()), mx = pad40(ias[x].read());
-			long long a = 0, b = 0;
-			for(int i = 0; i < 40; i++) { a = (a << 1) | (mq[i]=='1'); b = (b << 1) | (mx[i]=='1'); }
-			if(mq[0]=='1') a -= (1LL<<40);
-			if(mx[0]=='1') b -= (1LL<<40);
-			unsigned long long u = static_cast<unsigned long long>(a * b);
-			std::string lo, hi;
-			for(int i = 0; i < 40; i++) { lo = (u&1 ? "1":"0") + lo; u >>= 1; }
-			for(int i = 0; i < 40; i++) { hi = (u&1 ? "1":"0") + hi; u >>= 1; }
-			ias(5).write(pad40(hi));
-			ias(6).write(pad40(lo));
-		}
-		static void DIV(IAS& ias)
-		{
-			int x = addr(ias);
-			if(!inRange(x)) return;
-			std::string ac = pad40(ias(5).read()), mx = pad40(ias[x].read());
-			long long dv = 0, ds = 0;
-			for(int i = 0; i < 40; i++) { dv = (dv<<1) | (ac[i]=='1'); ds = (ds<<1) | (mx[i]=='1'); }
-			if(ac[0]=='1') dv -= (1LL<<40);
-			if(mx[0]=='1') ds -= (1LL<<40);
-			if(ds == 0) return;
-			unsigned long long uq = static_cast<unsigned long long>(dv/ds), ur = static_cast<unsigned long long>(dv%ds);
-			std::string qs, rs;
-			for(int i = 0; i < 40; i++) { qs = (uq&1 ? "1":"0") + qs; uq >>= 1; }
-			for(int i = 0; i < 40; i++) { rs = (ur&1 ? "1":"0") + rs; ur >>= 1; }
-			ias(6).write(pad40(qs));
-			ias(5).write(pad40(rs));
-		}
-	};
+        static void LDA(IAS& machine)
+        {
+            // LDA: AC <- M(MAR)
+            int addr = toDecimal(machine(3).read());
+            machine(5).write(machine[addr].read());
+        }
+
+        static void LDN(IAS& machine)
+        {
+            // LDN: AC <- -M(MAR)
+            int addr = toDecimal(machine(3).read());
+            machine(5).write(negate(machine[addr].read()));
+        }
+
+        static void ALD(IAS& machine)
+        {
+            // ALD: AC <- |M(MAR)|
+            int addr = toDecimal(machine(3).read());
+            std::string valueStr = machine[addr].read();
+
+            if(valueStr[0] == '1') {valueStr = negate(valueStr);}
+            machine(5).write(valueStr);
+        }
+
+        static void ALN(IAS& machine)
+        {
+            // ALN: AC <- -|M(MAR)|
+            int addr = toDecimal(machine(3).read());
+            std::string valueStr = machine[addr].read();
+
+            if(valueStr[0] == '1'){valueStr = negate(valueStr);}
+            if(valueStr.find('1') != std::string::npos) {valueStr = negate(valueStr);}
+            machine(5).write(valueStr);
+        }
+
+        static void BRL(IAS& machine)
+        {
+            // BRL: PC <- MAR; IR <- left(M(PC))
+            int addr = toDecimal(machine(3).read());
+            machine(0).write(machine(3).read());
+
+            std::string word = machine[addr].read();
+            machine(4).write(word);
+
+            std::string left  = word.substr(0, 20);
+            std::string right = word.substr(20, 20);
+
+            machine(1).write(left.substr(0, 8));  
+            machine(2).write(right);
+        }
+
+        static void BRR(IAS& machine)
+        {
+            // BRR: PC <- MAR; IR <- right(M(PC))
+            int addr = toDecimal(machine(3).read());
+            machine(0).write(machine(3).read());
+
+            std::string word = machine[addr].read();
+            machine(4).write(word);
+
+            std::string right = word.substr(20, 20);
+
+            machine(1).write(right.substr(0, 8));
+            machine(2).write(std::string(20,'0'));
+        }
+
+
+        static void BPL(IAS& machine)
+        {
+            // BPL: if AC >= 0: PC <- MAR; IR <- left(M(PC))
+            if(machine(5).read()[0] == '0')
+            {
+                int addr = toDecimal(machine(3).read());
+                machine(0).write(machine(3).read());
+
+                std::string word = machine[addr].read();
+                machine(4).write(word);
+
+                std::string left  = word.substr(0, 20);
+                std::string right = word.substr(20, 20);
+
+                machine(1).write(left.substr(0, 8));
+                machine(2).write(right);
+            }
+        }
+
+        static void BPR(IAS& machine)
+        {
+            // BPR: if AC >= 0: PC <- MAR; IR <- right(M(PC))
+            if(machine(5).read()[0] == '0')
+            {
+                int addr = toDecimal(machine(3).read());
+                machine(0).write(machine(3).read());
+
+                std::string word = machine[addr].read();
+                machine(4).write(word);
+
+                std::string left  = word.substr(0, 20);
+                std::string right = word.substr(20, 20);
+
+                machine(1).write(right.substr(0, 8));
+                machine(2).write(std::string(20,'0'));
+            }
+        }
+
+        static void ADD(IAS& machine)
+        {
+            // ADD: AC <- AC + M(MAR)
+            int addr = toDecimal(machine(3).read());
+
+            std::string memStr = machine[addr].read();
+            std::string acStr  = machine(5).read();
+
+            long long mem = std::stoll(memStr, nullptr, 2);
+            if(memStr[0] == '1') mem -= (1LL << 40);
+
+            long long ac = std::stoll(acStr, nullptr, 2);
+            if(acStr[0] == '1') ac -= (1LL << 40);
+
+            long long sum = ac + mem;
+
+            sum &= ((1LL << 40) - 1);
+
+            std::string resultStr(40, '0');
+            for(int j = 39; j >= 0; --j)
+            {
+                resultStr[j] = (sum & 1) ? '1' : '0';
+                sum >>= 1;
+            }
+
+            machine(5).write(resultStr);
+        }
+
+        static void AAD(IAS& machine)
+        {
+            // AAD: AC <- AC + |M(MAR)|
+            int addr = toDecimal(machine(3).read());
+
+            std::string memStr = machine[addr].read();
+            std::string acStr  = machine(5).read();
+
+            long long mem = std::stoll(memStr, nullptr, 2);
+            if(memStr[0] == '1')
+                mem -= (1LL << 40);
+
+            long long ac = std::stoll(acStr, nullptr, 2);
+            if(acStr[0] == '1')
+                ac -= (1LL << 40);
+
+            if(mem < 0)
+                mem = -mem;
+
+            long long sum = ac + mem;
+
+            sum &= ((1LL << 40) - 1);
+
+            std::string resultStr(40, '0');
+            for(int j = 39; j >= 0; --j)
+            {
+                resultStr[j] = (sum & 1) ? '1' : '0';
+                sum >>= 1;
+            }
+
+            machine(5).write(resultStr);
+        }
+
+        static void SUB(IAS& machine)
+        {
+            // SUB: AC <- AC - M(MAR)
+            int addr = toDecimal(machine(3).read());
+
+            std::string memStr = machine[addr].read();
+            std::string acStr  = machine(5).read();
+
+            long long mem = std::stoll(memStr, nullptr, 2);
+            if(memStr[0] == '1')
+                mem -= (1LL << 40);
+
+            long long ac = std::stoll(acStr, nullptr, 2);
+            if(acStr[0] == '1')
+                ac -= (1LL << 40);
+
+            long long diff = ac - mem;
+
+            diff &= ((1LL << 40) - 1);
+
+            std::string resultStr(40, '0');
+            for(int j = 39; j >= 0; --j)
+            {
+                resultStr[j] = (diff & 1) ? '1' : '0';
+                diff >>= 1;
+            }
+
+            machine(5).write(resultStr);
+        }
+
+        static void ASB(IAS& machine)
+        {
+            // ASB: AC <- AC - |M(MAR)|
+            int addr = toDecimal(machine(3).read());
+
+            std::string memStr = machine[addr].read();
+            std::string acStr  = machine(5).read();
+
+            long long mem = std::stoll(memStr, nullptr, 2);
+            if(memStr[0] == '1')
+                mem -= (1LL << 40);
+
+            long long ac = std::stoll(acStr, nullptr, 2);
+            if(acStr[0] == '1')
+                ac -= (1LL << 40);
+
+            if(mem < 0)
+                mem = -mem;
+
+            long long diff = ac - mem;
+
+            diff &= ((1LL << 40) - 1);
+
+            std::string resultStr(40, '0');
+            for(int j = 39; j >= 0; --j)
+            {
+                resultStr[j] = (diff &  1) ? '1' : '0';
+                diff >>= 1;
+            }
+
+            machine(5).write(resultStr);
+        }
+
+        static void MUL(IAS& machine)
+        {
+            // MUL: AC:MQ <- MQ * M(MAR)
+            int addr = toDecimal(machine(3).read());
+
+            std::string memStr = machine[addr].read();
+            std::string mqStr  = machine(6).read();
+
+            long long mem = std::stoll(memStr, nullptr, 2);
+            if(memStr[0] == '1')
+                mem -= (1LL << 40);
+
+            long long mq = std::stoll(mqStr, nullptr, 2);
+            if(mqStr[0] == '1')
+                mq -= (1LL << 40);
+
+            long long product = mem * mq;
+
+            long long highPart = (product >> 40);
+            long long lowPart  = product & ((1LL << 40) - 1);
+
+            highPart &= ((1LL << 40) - 1);
+
+            std::string highStr(40, '0');
+            std::string lowStr(40, '0');
+
+            for(int j = 39; j >= 0; --j)
+            {
+                highStr[j] = (highPart & 1) ? '1' : '0';
+                highPart >>= 1;
+
+                lowStr[j] = (lowPart & 1) ? '1' : '0';
+                lowPart >>= 1;
+            }
+
+            machine(5).write(highStr);
+            machine(6).write(lowStr);
+        }
+
+        static void DIV(IAS& machine)
+        {
+            // DIV: MQ <- AC / M(MAR); AC <- AC % M(MAR)
+            int addr = toDecimal(machine(3).read());
+
+            std::string divStr = machine[addr].read();
+            std::string acStr  = machine(5).read();
+
+            long long divisor = std::stoll(divStr, nullptr, 2);
+            if(divStr[0] == '1')
+                divisor -= (1LL << 40);
+
+            long long dividend = std::stoll(acStr, nullptr, 2);
+            if(acStr[0] == '1')
+                dividend -= (1LL << 40);
+
+            if(divisor == 0)
+                return;
+
+            long long quotient = dividend / divisor;
+            long long remainder = dividend % divisor;
+
+            quotient &= ((1LL << 40) - 1);
+            remainder &= ((1LL << 40) - 1);
+
+            std::string qStr(40, '0');
+            std::string rStr(40, '0');
+
+            for(int j = 39; j >= 0; --j)
+            {
+                qStr[j] = (quotient & 1) ? '1' : '0';
+                quotient >>= 1;
+
+                rStr[j] = (remainder & 1) ? '1' : '0';
+                remainder >>= 1;
+            }
+
+            machine(6).write(qStr);
+            machine(5).write(rStr);
+        }
+
+        static void LSH(IAS& machine)
+        {
+            // LSH: AC <- AC << 1
+            std::string acStr = machine(5).read();
+
+            long long ac = std::stoll(acStr, nullptr, 2);
+            if(acStr[0] == '1')
+                ac -= (1LL << 40);
+
+            ac = ac << 1;
+
+            ac &= ((1LL << 40) - 1);
+
+            std::string resultStr(40, '0');
+            for(int j = 39; j >= 0; --j)
+            {
+                resultStr[j] = (ac & 1) ? '1' : '0';
+                ac >>= 1;
+            }
+
+            machine(5).write(resultStr);
+        }
+
+        static void RSH(IAS& machine)
+        {
+            // RSH: AC <- AC >> 1
+            std::string acStr = machine(5).read();
+
+            long long ac = std::stoll(acStr, nullptr, 2);
+            if(acStr[0] == '1')
+                ac -= (1LL << 40);
+
+            ac = ac >> 1;
+
+            ac &= ((1LL << 40) - 1);
+
+            std::string resultStr(40, '0');
+            for(int j = 39; j >= 0; --j)
+            {
+                resultStr[j] = (ac & 1) ? '1' : '0';
+                ac >>= 1;
+            }
+
+            machine(5).write(resultStr);
+        }
+
+        static void STL(IAS& machine)
+        {
+            // STL: M(MAR)[8:19]  <- AC[28:39]
+            int addr = toDecimal(machine(3).read());
+
+            std::string acStr  = machine(5).read();
+            std::string memStr = machine[addr].read();
+
+            std::string segment = acStr.substr(28, 12);
+
+            memStr.replace(8, 12, segment);
+
+            machine[addr].write(memStr);
+        }
+
+        static void STR(IAS& machine)
+        {
+            // STR: M(MAR)[28:39] <- AC[28:39]
+            int addr = toDecimal(machine(3).read());
+
+            std::string acStr  = machine(5).read();
+            std::string memStr = machine[addr].read();
+
+            std::string segment = acStr.substr(28, 12);
+
+            memStr.replace(28, 12, segment);
+
+            machine[addr].write(memStr);
+        }
+
+        static void HLT(IAS& machine)
+        {
+            //Halts
+            throw std::runtime_error("HLT");
+        }
+
+        public:
+        static void execute(IAS& machine)
+        {
+            int opcode = toDecimal(machine(1).read());
+
+            if(opcode == 10) { LMA(machine); }          // 0A
+            else if(opcode == 9) { LDM(machine); }      // 09
+            else if(opcode == 33) { STA(machine); }     // 21
+            else if(opcode == 1) { LDA(machine); }      // 01
+            else if(opcode == 2) { LDN(machine); }      // 02
+            else if(opcode == 3) { ALD(machine); }      // 03
+            else if(opcode == 4) { ALN(machine); }      // 04
+            else if(opcode == 13) { BRL(machine); }     // 0D
+            else if(opcode == 14) { BRR(machine); }     // 0E
+            else if(opcode == 15) { BPL(machine); }     // 0F
+            else if(opcode == 16) { BPR(machine); }     // 10
+            else if(opcode == 5) { ADD(machine); }      // 05
+            else if(opcode == 7) { AAD(machine); }      // 07
+            else if(opcode == 6) { SUB(machine); }      // 06
+            else if(opcode == 8) { ASB(machine); }      // 08
+            else if(opcode == 11) { MUL(machine); }     // 0B
+            else if(opcode == 12) { DIV(machine); }     // 0C
+            else if(opcode == 20) { LSH(machine); }     // 14
+            else if(opcode == 21) { RSH(machine); }     // 15
+            else if(opcode == 18) { STL(machine); }     // 12
+            else if(opcode == 19) { STR(machine); }     // 13
+            else if(opcode == 0) { HLT(machine); }      // 00
+        }
+    };
 }
 
 #endif

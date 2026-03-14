@@ -12,10 +12,10 @@ namespace osl
 		virtual ~Object() {}
 		virtual std::string toString() const = 0;
 		
-		friend std::ostream& operator<<(std::ostream& out,const Object& obj)
+		friend std::ostream& operator<<(std::ostream& stream,const Object& o)
 		{
-			out << obj.toString();
-			return out;
+			stream << o.toString();
+			return stream;
 		}
 	};
 }

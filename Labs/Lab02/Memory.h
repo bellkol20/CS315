@@ -10,79 +10,79 @@
 
 namespace osl
 {
-    bool isBinary(std::string str)
+    bool isBinary(std::string input)
     {
-        for(char c : str)
+        for(char c : input)
         {
             if(c != '0' && c != '1') {return false;}
         }
         return true;
     }
 
-    bool isHex(std::string str)
+    bool isHex(std::string input)
     {
-        char i;
+        char ch;
 
-        for(char c : str)
+        for(char c : input)
         {
-            i = tolower(c);
-            if(!isdigit(i) && (i < 'a' || i > 'f')) {return false;}
+            ch = tolower(c);
+            if(!isdigit(ch) && (ch < 'a' || ch > 'f')) {return false;}
         }
         return true;
     }
 
-    int toDecimal(std::string obj)
+    int toDecimal(std::string binStr)
     {
-        if(!isBinary(obj)) return -1;
-        int rslt = 0;
+        if(!isBinary(binStr)) return -1;
+        int result = 0;
 
-        for(char i : obj)
+        for(char bit : binStr)
         {
-            rslt *= 2;
-            if(i == '1') {rslt += 1;}
+            result *= 2;
+            if(bit == '1') {result += 1;}
         }
-        return rslt;
+        return result;
     }
 
-    std::string toBinary(int obj)
+    std::string toBinary(int num)
     {
-        if(obj < 0) {obj *= -1;}
-        else if(obj == 0) {return "0";}
+        if(num < 0) {num *= -1;}
+        else if(num == 0) {return "0";}
 
-        std::string rslt;
+        std::string result;
         
-        while(obj > 0)
+        while(num > 0)
         {
-            rslt = std::to_string(obj % 2) + rslt;
-            obj /= 2;
+            result = std::to_string(num % 2) + result;
+            num /= 2;
         }
-        return rslt;
+        return result;
     }
 
-    std::string negate(std::string obj)
+    std::string negate(std::string binStr)
     {
-        if(!isBinary(obj)) {return "";}
-        std::string cbj;
+        if(!isBinary(binStr)) {return "";}
+        std::string inverted;
         bool carry = true;
 
         //inverts
-        for(char c : obj)
+        for(char c : binStr)
         {
-            if(c == '1') {cbj += '0';}
-            else {cbj += '1';}
+            if(c == '1') {inverted += '0';}
+            else {inverted += '1';}
         }
 
         //adds 1
-        for(int i = cbj.length() - 1;carry && i >= 0;i -= 1)
+        for(int i = inverted.length() - 1;carry && i >= 0;i -= 1)
         {
-            if(cbj[i] == '1') {cbj[i] = '0';}
+            if(inverted[i] == '1') {inverted[i] = '0';}
             else
             {
-                cbj[i] = '1';
+                inverted[i] = '1';
                 carry = false;
             } 
         }
-        return cbj;
+        return inverted;
     }
 
 
@@ -95,33 +95,33 @@ namespace osl
         static const std::string digits[10];
         static const std::string letters[6];
 
-        std::string toBinary(std::string obj) const
+        std::string toBinary(std::string hexStr) const
         {
-            char i;
-            std::string rslt;
+            char ch;
+            std::string result;
 
-            for(char c : obj)
+            for(char c : hexStr)
             {
-                i = tolower(c);
+                ch = tolower(c);
                 
-                if(isdigit(i)) {rslt += digits[i-'0'];}
-                else {rslt += letters[i-'a'];}
+                if(isdigit(ch)) {result += digits[ch-'0'];}
+                else {result += letters[ch-'a'];}
             }
-            return rslt;
+            return result;
         }
 
-        std::string toHex(std::string obj) const
+        std::string toHex(std::string binStr) const
         {
-            int pd = (4 - obj.length() % 4) % 4;
-            std::string cbj = std::string(pd,'0') + obj, sbj, rslt;
-            std::string hdg = "0123456789ABCDEF";
+            int padLen = (4 - binStr.length() % 4) % 4;
+            std::string padded = std::string(padLen,'0') + binStr, nibble, result;
+            std::string hexDigits = "0123456789ABCDEF";
 
-            for(int i = 0;i < cbj.length();i += 4)
+            for(int i = 0;i < padded.length();i += 4)
             {
-                sbj = cbj.substr(i,4);
-                rslt += hdg[toDecimal(sbj)]; 
+                nibble = padded.substr(i,4);
+                result += hexDigits[toDecimal(nibble)]; 
             }
-            return rslt;
+            return result;
         }
 
         public:
@@ -134,11 +134,11 @@ namespace osl
         }
 
         //Copy Constructor
-        Memory(const Memory& obj)
+        Memory(const Memory& other)
         {
-            content = obj.content;
-            id = obj.id;
-            flag = obj.flag;
+            content = other.content;
+            id = other.id;
+            flag = other.flag;
         }
 
         //Assignment Operator
@@ -162,32 +162,43 @@ namespace osl
             return content;
         }
 
-        void write(std::string obj)
+        void write(std::string value)
         {
-            if(isBinary(obj))
+            if(isBinary(value))
             {
                 flag = true;
-                content = obj;
+                content = value;
             }
         }
 
         std::string name() const {return id;}
 
-        void name(std::string obj) {id = obj;}
+        void name(std::string value) {id = value;}
 
         bool active() const {return flag;}
 
-        void change(bool obj) {flag = obj;}
+        void change(bool value) {flag = value;}
 
-        friend std::istream& operator>>(std::istream& i,Memory& obj)
+        friend std::istream& operator>>(std::istream& in,Memory& mem)
         {
             std::string str;
-            i >> str;
+            in >> str;
 
-            if(isBinary(str)) {obj.content = str;}
-            else if(isHex(str)) {obj.content = obj.toBinary(str);}
-            else {obj.content = std::string(8,'0');}
-            return i;
+            if(isBinary(str))
+            {
+                if(str.length() < 40) str = std::string(40 - str.length(), '0') + str;
+                else if(str.length() > 40) str = str.substr(str.length() - 40);
+                mem.content = str;
+            }
+            else if(isHex(str))
+            {
+                std::string bin = mem.toBinary(str);
+                if(bin.length() < 40) bin = std::string(40 - bin.length(), '0') + bin;
+                else if(bin.length() > 40) bin = bin.substr(bin.length() - 40);
+                mem.content = bin;
+            }
+            else {mem.content = std::string(40,'0');}
+            return in;
         }
 
         std::string toString() const override 
