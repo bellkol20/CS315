@@ -1,0 +1,46 @@
+Task 2: Trace of Task 1 from address 000
+
+Initial memory 
+
+M(AF) = C3017247A8   (L)
+M(61) = 000000001E   (M = 30₁₀)
+M(D5) = 0000000041   (N = 65₁₀)
+
+Sign of L: C3017247A8 as a 40-bit two’s complement value is negative (MSB = 1), so L < 0.
+Therefore the CPU follows the L < 0 path (sequential from 000 → 001 → 002 → 003), not the branch to 010.
+
+Registers use a 40-bit AC as in the IAS model; MQ is not used in this program.
+
+Step-by-step (sequential changes)
+
+1) PC = 000, execute LEFT of 000:  LDA AF  
+   • AC ← M(AF) = C3017247A8  
+   • PC advances within word to RIGHT of 000.
+
+2) PC = 000 (right), execute RIGHT of 000:  BPL 010  
+   • Test: AC ≥ 0?  No (L is negative). Branch not taken.  
+   • Next instruction: LEFT half of 001.
+
+3) PC = 001, execute LEFT of 001:  LDA 61  
+   • AC ← M(61) = 000000001E (30₁₀).
+
+4) PC = 001 (right), execute RIGHT of 001:  RSH 000  
+   • AC ← AC / 2  →  AC = 000000000F (15₁₀).
+
+5) PC = 002, execute LEFT of 002:  SUB D5  
+   • AC ← AC − M(D5) = 15 − 65 = −50₁₀.
+
+6) PC = 002 (right), execute RIGHT of 002:  STA 61  
+   • M(61) ← AC.  
+   • In 40-bit two’s complement, −50₁₀ = FFFFFFFFCE₁₆ (ten hex digits).  
+   • Memory change: M(61): 000000001E → FFFFFFFFCE.
+
+7) PC = 003, execute LEFT of 003:  HLT 000  
+   • Machine halts. (RIGHT of 003 is also HLT.)
+
+Final state summary
+• AC = FFFFFFFFCE (still holds −50 unless HLT clears it; exam traces usually leave AC as last result.)  
+• M(61) = FFFFFFFFCE  
+• M(AF), M(D5) unchanged from initial values.
+
+If L were nonnegative, BPL 010 would take the next instruction from the left half of word 010 (positive path), and M(61) would become M/2 + N instead.

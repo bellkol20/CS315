@@ -1,0 +1,36 @@
+Task 1: IAS program (hexadecimal)
+
+Problem: M = M/2 + N if L ≥ 0, else M = M/2 − N
+Addresses: L → AF, M → 61, N → D5
+
+Encoding (per 20-bit half-word): opcode in bits [19:12], address in bits [11:0], written as 5 hex digits (OOOAA).
+
+Memory layout
+
+000  LDA AF ; load L into AC          |  BPL 010 ; if AC ≥ 0, next instruction from LEFT half of M(010)
+001  LDA 61 ; (L < 0 path) load M     |  RSH 000 ; AC ← AC/2 (integer)
+002  SUB D5 ; AC ← AC − N            |  STA 61 ; M ← AC
+003  HLT 000                          |  HLT 000
+
+010  LDA 61 ; (L ≥ 0 path) load M     |  RSH 000 ; AC ← AC/2
+011  ADD D5 ; AC ← AC + N             |  STA 61 ; M ← AC
+012  HLT 000                         |  HLT 000
+
+40-bit words (10 hex digits: left half | right half)
+000:  010AF0F010
+001:  0106115000
+002:  060D521061
+003:  0000000000
+
+010:  0106115000
+011:  050D521061
+012:  0000000000
+
+Opcode reference (from exam sheet): LDA 01, LDN 02, ADD 05, SUB 06, STA 21, BPL 0F, RSH 15, HLT 00.
+
+Notes
+
+• BPL uses the hint: if L ≥ 0, branch to the positive block at address 010 (left half).
+• RSH uses address 000 (operand unused; divisor 2 via shift).
+• STA writes the full accumulator back to M(61).
+

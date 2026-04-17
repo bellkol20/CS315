@@ -1,0 +1,20 @@
+Task 3: Process states during execution
+
+A process moves among several states from creation to completion. Typical five-state model:
+
+1) New  
+   The process has been created (e.g., after fork/exec) but has not yet been admitted to the pool of runnable processes. The OS is still setting up the PCB and resources. Purpose: isolate admission control so the system does not accept more work than it can manage.
+
+2) Ready  
+   The process has everything it needs to run except the CPU. It sits in a ready queue waiting to be scheduled. Purpose: separate “runnable” processes from the one actually executing, so the scheduler can pick the next process fairly or by policy.
+
+3) Running  
+   Instructions are executing on a CPU core. At most one process per core is in this state at a time (for that core). Purpose: this is the active execution phase where the program makes progress.
+
+4) Waiting (Blocked)  
+   The process cannot continue until some event completes (e.g., I/O finish, lock available, message arrival). It is removed from the ready queue and does not use the CPU. Purpose: avoid wasting CPU time spinning while waiting for slow or external events.
+
+5) Terminated  
+   The process has finished execution or was aborted. The OS may keep it briefly so the parent can read the exit status (zombie on Unix-like systems), then reclaims its PCB and resources. Purpose: clean teardown and reporting of completion.
+
+Purpose of the state model: it lets the OS schedule CPU time efficiently, multiplex many processes on few cores, and handle blocking operations without idling the machine.
