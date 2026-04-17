@@ -1,3 +1,6 @@
+Isabella Koletic 
+04/17/25
+
 Task 3: Process states during execution
 
 A process moves among several states from creation to completion. Typical five-state model:
