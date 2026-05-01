@@ -14,7 +14,7 @@ namespace osl
 	class Process : public Object 
 	{
 		private:
-		std::string	process_id;
+		std::string process_id;
 		size_t arrival_time;         
 		size_t burst_time;           
 		size_t remaining_time;       
@@ -24,6 +24,7 @@ namespace osl
 		size_t elapsed_time;		
 		static size_t counter;
 		bool is_active;
+		bool has_started;
 		
 		static std::string genID() 
 		{
@@ -43,6 +44,8 @@ namespace osl
 		public:
 		Process() : process_id(genID()), elapsed_time(0), arrival_time(counter)
 		{
+			is_active = false;
+			has_started = false;
 			counter += 1;
 		}
 		
@@ -62,20 +65,22 @@ namespace osl
 		
 		bool active() const {return is_active;}
 		
-		bool& active() {return is_arrive;}
+		bool& active() {return is_active;}
 		
 		bool hasCompleted() const {return remaining_time == 0;}
 		
 		bool hasArrived() const {return elapsed_time >= arrival_time;}
+
+		bool started() const {return has_started;}
 		
 		void tick() {elapsed_time += 1;}
 		
-		void reset() {elapse_time = 0;}
+		void reset() {elapsed_time = 0;}
 		
-		void mark() {start_time = elapse_time;}
+		void mark() {start_time = elapsed_time;}
 	};
 	
-	int Process::counter = 0;
+	size_t Process::counter = 0;
 }
 
 #endif
