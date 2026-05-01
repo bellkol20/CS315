@@ -58,6 +58,8 @@ namespace osl
 		size_t& burstTime() {return burst_time;}
 		
 		const size_t& remainingTime() const {return remaining_time;}
+
+		size_t& remainingTime() {return remaining_time;}
 		
 		const size_t& startTime() const {return start_time;}
 		
