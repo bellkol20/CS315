@@ -1,36 +1,23 @@
 #ifndef SWITCH_H
 #define SWITCH_H
 
-#include "Dev.h"
+#include "Gate.h"
 
-namespace osp
+namespace osl
 {
-	class Switch : public Dev 
+	/** Single control bit (op): 0 = addition, 1 = subtraction in this project. */
+	class Switch : public Gate
 	{
-		private:
-		bool bit;
-		Switch(const Switch&) = delete;
-		Switch& operator=(const Switch&) = delete;
-		using Dev::bind;
-		using Dev::unbind;
+	public:
+		Switch() : state(false) {}
 
-		public:
-		Switch() : bit(false) {}
-		
-		Switch(bool value) : bit(value) {}
-		
-		virtual ~Switch() {}
-		
-		void invert() {bit = !bit;}
-		
-		bool valid() const final {return true;}
-		
-		bool output() const final {return bit;}
-		
-		std::string toString() const final 
-		{
-			return ((bit)?("T"):("F"));
-		}
+		void set(bool bit) { state = bit; }
+		bool getState() const { return state; }
+
+		bool eval() const override { return state; }
+
+	private:
+		bool state;
 	};
 }
 

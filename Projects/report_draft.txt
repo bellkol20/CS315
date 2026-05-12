@@ -1,0 +1,187 @@
+CS 315 — Programming Project: Combinational Circuit Chip
+Draft text for the PDF report (paste into red sections and edit in your own words where your instructor expects personalization).
+
+
+1. Key terms & definitions
+
+Boolean algebra — A symbolic system for reasoning about signals that take only
+two values (true/false or 1/0). It uses operators such as AND (·), OR (+), and
+NOT (′) together with laws (commutative, distributive, De Morgan, etc.) to
+manipulate and simplify logic expressions.
+
+Gate — A small building block that outputs a single Boolean value determined
+entirely by its inputs at that instant (no internal memory in the combinational
+case). Examples include AND, OR, NOT, and XOR gates.
+
+Combinational circuit — A network of gates whose outputs depend only on the
+current inputs. If the inputs change, the outputs eventually reflect the new
+inputs; there is no feedback that stores past history inside the ideal model.
+
+Truth table — A table listing every combination of input values for a circuit
+(or function) together with the resulting output(s). It is the specification
+from which you can derive minterms/maxterms or Boolean formulas.
+
+Karnaugh map (K-map) — A grid layout of truth-table rows that places logically
+adjacent input combinations next to each other. Grouping 1s in the map helps
+you read off simplified sum-of-product (or product-of-sum) expressions with
+fewer literals than a raw truth-table expansion.
+
+
+2. Reiterate question (your own words)
+
+The project asks whether a very small arithmetic logic unit that only needs to
+add and subtract two’s-complement 4-bit numbers can be built purely as a
+combinational network (no registers or sequential control beyond selecting the
+operation). The answer is yes: subtraction is reduced to addition with a
+controlled bit inversion and an initial carry, and a ripple structure propagates
+carries between bit positions.
+
+3. Forecasting
+
+(a) Addition and subtraction on n-bit two’s-complement words
+To subtract Y from X, compute X + (~Y) + 1. In other words, bitwise invert Y,
+then add X to that inverted word with an initial carry-in of 1 into the least
+significant position. Adding two n-bit two’s-complement numbers can overflow
+when the true mathematical sum lies outside the representable range; the MSB
+carry and/or XOR of operand signs with result sign can flag that case.
+
+(b) Full-adder truth table (R = sum bit, C = carry-out of A + B + Cin)
+
+A  B  Cin | R  C
+---------+-----
+1  1   1 | 1  1
+1  1   0 | 0  1
+1  0   1 | 0  1
+1  0   0 | 1  0
+0  1   1 | 0  1
+0  1   0 | 1  0
+0  0   1 | 1  0
+0  0   0 | 0  0
+
+(c) Canonical sum-of-products (SOP)
+Number minterms where ABC maps to A as MSB variable if you like; here we list
+minterms by (A,B,Cin).
+
+R = Σm(1,2,4,7)
+  = A′B′Cin + A′BCin′ + AB′Cin′ + ABCin
+
+C = Σm(3,5,6,7)
+  = A′BCin + AB′Cin + ABCin′ + ABCin
+
+(d) Simplified forms (Boolean algebra / K-map)
+Let ⊕ denote XOR.
+
+R = A ⊕ B ⊕ Cin
+
+C = AB + BCin + ACin  = AB + Cin(A ⊕ B)
+   (equivalently majority of A,B,Cin)
+
+(e) n-bit adder chaining and the LSB stage
+Each bit position is a full adder. The carry-out of position i is the carry-in
+of position i+1. For the least significant stage, Cin is the external carry into
+the whole adder (often 0 for a plain add). For the dual-operation ALU in this
+project, that initial carry-in is wired to the same control bit op that selects
+add vs subtract so that subtraction picks up the +1 of two’s complement at the
+LSB.
+
+(f) Subtraction at one bit position
+Let B_eff = B ⊕ op so that B_eff = B when op=0 and B_eff = NOT B when op=1.
+Using the same full-adder sum and carry formulas with B replaced by B_eff
+implements the ripple subtract pattern when the LSB carry-in is op.
+
+R_sub = A ⊕ B_eff ⊕ Cin
+C_sub = AB_eff + Cin(A ⊕ B_eff)
+
+(g) Merged circuit with control op
+One hardware slice computes B_eff = B ⊕ op, then
+R = A ⊕ B_eff ⊕ Cin and C = AB_eff + Cin(A ⊕ B_eff).
+The same op is also fed as Cin into the least significant stage of the full
+multi-bit unit for subtraction.
+
+4. Hypothesis (fill-in format)
+
+If we model each Boolean operator as a concrete Gate subclass, wire Ports to
+external Words, use a Switch for op, and evaluate from Sockets attached to the
+R and C roots, then the measured bit-by-bit outputs will match the truth-table
+predictions for add (op=0) and subtract (op=1), because the graph is a direct
+structural implementation of the simplified equations above.
+
+
+5. Step-by-step procedure (what the program does)
+
+(a) BooleanGates.h defines NotGate, AndGate, OrGate, and XorGate; each inherits
+    Gate (which inherits Dev).
+(b) DualOpBitSlice builds R = A ⊕ (B ⊕ op) ⊕ Cin using XorGate and a Split on
+    the (A ⊕ B_eff) line to fan out to the final XOR and to the carry path.
+(c) The same slice builds C = A·(B ⊕ op) + Cin·(A ⊕ (B ⊕ op)) with AndGate and
+    OrGate; the carry root is attached to a Socket in the 8-bit tests.
+(d)–(i) main.cpp constructs Words A, B, Cin per the handout, binds three Ports,
+    runs eight independent bit positions for op=0 and op=1, and writes tables to
+    test1_add.txt and test2_sub.txt (also echoed to stdout).
+(j)–(m) Four ripple stages share one Switch op; stage k processes bit index
+    (3−k) so that string index 3 is the LSB (matches Word::value). The third
+    Word holds the 4-bit result; final carry is printed separately. Outputs are
+    test3_4bit_add.txt and test4_4bit_sub.txt.
+
+
+6. Implementation notes
+
+— Bit order: Word::get(0) is the leftmost character of the literal string, which
+  we treat as the MSB; the ripple chain therefore walks from index 3 to 0.
+— Split objects implement explicit fan-out on the (A ⊕ B_eff) line as required by
+  the assignment’s Split.h usage.
+— Memory: gates are heap-allocated into a small arena vector and freed after
+  each 8-bit column evaluation (and after each complete 4-bit run) to avoid
+  leaks without relying on <memory>.
+— No deviation from the allowed standard-library list beyond what the provided
+  Word.h historically used; only iostream, string, sstream, fstream, iomanip are
+  needed for the project sources.
+
+
+7. Code repository (submitted source files)
+
+Object.h      — Base Object with toString and stream insertion.
+Dev.h         — Abstract combinational node with eval().
+Gate.h        — Marker layer for gates.
+Split.h       — Fan-out node repeating one upstream eval().
+Port.h        — Reads one bit from a Word.
+Switch.h      — User-settable control bit (op).
+Socket.h      — Evaluates a root Dev and writes into a Word bit.
+Word.h        — Bit string utilities (from course style; stdexcept removed).
+BooleanGates.h— And, Or, Not, Xor concrete gates.
+main.cpp      — Builds slices, runs four test cases, writes .txt outputs.
+sample.cpp    — Short demonstration snippet (no separate main driver).
+report_draft.txt — This file (optional; delete before submit if not wanted).
+
+Generated outputs (after running ./alu from the Projects directory):
+test1_add.txt, test2_sub.txt, test3_4bit_add.txt, test4_4bit_sub.txt
+
+
+8. Output
+
+Run from Projects/:  g++ -std=c++17 main.cpp -o alu && ./alu
+The program prints the same tables/lines that are stored in the four .txt files.
+
+
+9. Data analysis (after running)
+
+— Test 1 (add, op=0): Each row is a full adder on independent columns A[i],
+  B[i], Cin[i]; R matches A⊕B⊕Cin and C matches the majority function.
+— Test 2 (sub, op=1): With the same A,B,Cin streams, toggling op changes B_eff
+  and the initial carry behavior, so R and C streams differ predictably from
+  Test 1.
+— Test 3: 0101 (5) + 0011 (3) yields 1000 (8) with final carry 0 — consistent
+  with unsigned 4-bit addition without overflow past 15.
+— Test 4: 0101 − 0011 yields 0010 (2) with final carry 1 — consistent with the
+  two’s-complement ripple subtract pattern where the outgoing MSB carry indicates
+  “no borrow from infinity” for this width.
+
+
+10. Conclusion
+
+A 4-bit ALU that only adds and subtracts two’s-complement numbers can be built as
+a pure combinational circuit: subtraction is encoded as addition with a
+controlled inversion of B and an initial carry of 1 at the LSB, implemented here
+by reusing one Switch for both roles at the least significant stage and for
+B_eff at every bit. The simulation results in the .txt files match pencil-and-
+paper full-adder and ripple predictions.

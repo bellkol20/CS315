@@ -1,18 +1,21 @@
 #ifndef OBJECT_H
 #define OBJECT_H
 
-namespace osp 
+#include <iostream>
+#include <string>
+
+namespace osl
 {
 	class Object
 	{
-		public:
-		virtual std::string toString() const = 0;
+	public:
 		virtual ~Object() {}
+		virtual std::string toString() const = 0;
 
-		friend std::ostream& operator<<(std::ostream& out,const Object& obj)
+		friend std::ostream& operator<<(std::ostream& stream, const Object& o)
 		{
-			out << obj.toString();
-			return out;
+			stream << o.toString();
+			return stream;
 		}
 	};
 }

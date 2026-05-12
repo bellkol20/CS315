@@ -1,88 +1,47 @@
 #ifndef SOCKET_H
 #define SOCKET_H
 
+#include <sstream>
+#include <string>
+
 #include "Dev.h"
+#include "Object.h"
 #include "Word.h"
 
-namespace osp
+namespace osl
 {
-	class Socket : public Object 
+	/**
+	 * Sink attached to the root of a sub-circuit. evaluate() pulls the Boolean
+	 * result from the root and stores it into a destination Word at bitIndex.
+	 */
+	class Socket : public Object
 	{
-		private:
-		Dev* src;
-		Word* des;
-		size_t pin;
-		Socket(const Socket&) = delete;
-		Socket& operator=(const Socket&) = delete;
+	public:
+		Socket(const Dev* rootGate, Word* destination, size_t bitIndex)
+			: root(rootGate), dest(destination), bit(bitIndex)
+		{}
 
-		public:
-		Socket() : src(nullptr), des(nullptr), pin(0) {}
-		
-		virtual ~Socket() 
+		void evaluate()
 		{
-			src = nullptr;
-			des = nullptr;
-		}
-		
-		bool destination(Word& obj) 
-		{
-			if(des == nullptr)
+			if (root != nullptr && dest != nullptr && bit < dest->size())
 			{
-				des = &obj;
-				return true;
-			}
-			return false;
-		}
-
-		bool source(Dev& obj)
-		{
-			if(obj.valid() && src == nullptr)
-			{
-				src = &obj;
-				return true;
-			}
-			return false;
-		}
-
-		void set(size_t idx)
-		{
-			if(des != nullptr && idx < des->size())
-			{
-				pin = idx;
+				dest->set(bit, root->eval());
 			}
 		}
 
-		void unbind() 
+		bool probe() const { return root != nullptr && root->eval(); }
+
+		std::string toString() const override
 		{
-			des = nullptr;
-			src = nullptr;
+			std::ostringstream out;
+			out << (probe() ? '1' : '0');
+			return out.str();
 		}
-		
-		bool configured() const 
-		{
-			bool sck = src != nullptr && src->valid();
-			bool dck = des != nullptr;
-			return sck && dck;
-		}
-		
-		bool evaluate()  
-		{
-			if(configured()) 
-			{
-				des->set(pin,src->output());
-				return true;
-			}
-			return false;
-		}
-		
-		std::string toString() const final 
-		{
-			if(des != nullptr)
-			{
-				return ((des->get(pin))?("T"):("F"));
-			}
-			return "X";
-		}
+
+	private:
+		const Dev* root;
+		Word* dest;
+		size_t bit;
 	};
 }
 

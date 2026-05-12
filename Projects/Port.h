@@ -1,60 +1,35 @@
 #ifndef PORT_H
 #define PORT_H
 
-#include "Dev.h"
+#include "Gate.h"
 #include "Word.h"
 
-namespace osp
+namespace osl
 {
-	class Port : public Dev 
+	/** Reads one bit from an external Word (A, B, or Cin stream). */
+	class Port : public Gate
 	{
-		private:
-		Word* data;
-		size_t pin;
-		Port(const Port&) = delete;
-		Port& operator=(const Port&) = delete;
-		using Dev::bind;
-		using Dev::unbind;
+	public:
+		Port() : word(nullptr), index(0) {}
 
-		public:
-		Port() : data(nullptr), pin(0) {}
-		
-		virtual ~Port() {data = nullptr;}
-		
-		bool input(Word& obj) 
+		void bind(const Word* w, size_t idx)
 		{
-			if(data == nullptr)
-			{
-				data = &obj;
-				return true;
-			}
-			return false;
+			word = w;
+			index = idx;
 		}
 
-		void set(size_t idx)
+		bool eval() const override
 		{
-			if(data != nullptr && idx < data->size())
+			if (word == nullptr || index >= word->size())
 			{
-				pin = idx;
+				return false;
 			}
+			return word->get(index);
 		}
-		
-		bool valid() const final {return data != nullptr;}
-		
-		bool output() const final 
-		{
-			if(data != nullptr) {return data->get(pin);}
-			return false;
-		}
-		
-		std::string toString() const final 
-		{
-			if(data != nullptr)
-			{
-				return ((data->get(pin))?("T"):("F"));
-			}
-			return "X";
-		}
+
+	private:
+		const Word* word;
+		size_t index;
 	};
 }
 
