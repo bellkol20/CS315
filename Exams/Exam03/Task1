@@ -1,0 +1,21 @@
+CS 315 Exam 3 — Task 1
+Isabella Koletic
+May 15, 2026
+
+Convert to 12-bit two's-complement negation: invert all 12 bits, then add 1 (show inversion + final).
+
+a) 10100101101  →  pad to 12 bits (MSBs 0): 010100101101
+   Inversion:     101011010010
+   Add 1:         101011010011  ← final 12-bit negation
+
+b) 100000011  →  000100000011
+   Inversion:     111011111100
+   Add 1:         111011111101  ← final
+
+c) 100100110110  (already 12 bits)
+   Inversion:     011011001001
+   Add 1:         011011001010  ← final
+
+d) 101110  →  000000101110
+   Inversion:     111111010001
+   Add 1:         111111010010  ← final

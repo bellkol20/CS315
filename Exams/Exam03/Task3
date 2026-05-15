@@ -1,0 +1,31 @@
+CS 315 Exam 3 — Task 3
+Isabella Koletic 
+May 15,2026 
+
+Initial memory:
+  M[7D] = 0000000031   (L = 49)
+  M[A1] = 000000000A   (M = 10)
+  M[8C] = 0000000014   (N = 20)
+
+000 = 0107D060A1
+  LDA 7D  -> AC = 0000000031 (49)
+  SUB A1  -> AC = 0000000027 (39), i.e. L − M
+
+001 = 0F006010A1
+  BPL 006 -> AC ≥ 0, branch to word 006 (L ≥ M)
+
+006 = 0908C0A000
+  LDM 8C  -> MQ = 0000000014 (20)
+  LMA     -> AC = 0000000014 (20)
+
+007 = 14000050A1
+  LSH     -> AC = 0000000028 (40), 2N
+  ADD A1  -> AC = 0000000032 (50), 2N + M
+
+008 = 210A100000
+  STA A1  -> M[A1] = 0000000032
+  HLT
+
+Skipped on this run: right half of 001 and all of 002–003.
+
+Final M at A1: 0000000032 -> 50 decimal.

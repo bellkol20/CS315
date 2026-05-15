@@ -1,0 +1,32 @@
+CS 315 Exam 3 — Task 7 (SJF — non-preemptive)
+Isabella Koletic
+May 15, 2026
+
+PIDs: 1380 1572 0941 2867
+Arrival: 0 2 6 4
+Burst:   5 6 8 3
+
+
+Schedule: 1380 [0–4], 2867 [5–7], 1572 [8–13], 0941 [14–21]. Times 22–30 idle on the handout grid unless you shade idle.
+
+Grid: 2867, 0941, 1572, 1380
+
+Time:  0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30
+2867:              X  X  X
+0941:                                                      X  X  X  X  X  X  X  X
+1572:                      X  X  X  X  X  X
+1380:  X  X  X  X  X
+
+CPU by time slot 0–21:
+
+  t:  0    1    2    3    4    5    6    7    8    9   10   11   12   13   14   15   16   17   18   19   20   21
+PID:1380 1380 1380 1380 1380 2867 2867 2867 1572 1572 1572 1572 1572 1572 0941 0941 0941 0941 0941 0941 0941 0941
+
+turnaround time = completion time − arrival time
+waiting time    = turnaround time − burst time
+
+PID   Arrival  Burst  Completion  Turnaround  Waiting
+1380      0        5        5          5           0
+2867      4        3        8          4           1
+1572      2        6       14         12           6
+0941      6        8       22         16           8
